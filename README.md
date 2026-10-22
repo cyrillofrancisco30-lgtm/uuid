@@ -1,3 +1,286 @@
+RFC-0001: XA-TRUST-GOV-001 — Global Claim Non-Derivability Policy
+Status: Standards Track
+Data: 15 de setembro de 2026
+Domínio: Trust & Governance Framework (XA-TRUST)
+Autor: Architecture & Trust Governance Working Group
+1. Resumo Executivo (Abstract)
+Este documento especifica formalmente a regra de governança XA-TRUST-GOV-001 (Global Claim Non-Derivability). A regra proíbe estritamente a inferência automática do status GLOBAL VERIFIED a partir da conjunção de status VERIFIED de escopo local (A \land B \land C). Define-se a esteira obrigatória de reavaliação de segunda ordem, os cenários de retenção em NOT_PROMOTABLE, as estruturas dos payloads de resposta e os contratos formais em JSON-Schema.
+2. Semântica e Formalização Matemática
+2.1 Teorema da Não-Derivabilidade Global
+A aprovação no escopo de uma alegação local (claim) certifica a exatidão dos dados exclusivamente dentro da sua jurisdição e limites operacionais. A conjunção de alegações locais válidas atua apenas como evidência de entrada (evidence input) para a decisão macro, não configurando transitividade de decisão.
+2.2 Fluxo Sequencial de Decisão
+LOCAL VERIFIED CLAIMS (A, B, C)
+        │
+        ▼
+GLOBAL EVALUATION INPUTS
+        │
+        ▼
+GLOBAL RE-EVALUATION
+        ├── 1. TARGET POPULATION
+        ├── 2. COVERAGE
+        ├── 3. COMPLETENESS
+        ├── 4. AGGREGATION POLICY
+        └── 5. AGGREGATION VERIFICATION
+        │
+        ▼
+GLOBAL CLAIM DECISION
+        ├── VERIFIED (Sucesso)
+        └── NOT_PROMOTABLE (Bloqueio)
+
+3. Critérios de Reavaliação Global e Bloqueio
+A transição para GLOBAL VERIFIED exige a satisfação cumulativa dos cinco pilares de governança. O não atendimento de qualquer um dos critérios força o estado padrão de salvaguarda NOT_PROMOTABLE.
+ * Target Population: A amostragem combinada das alegações locais deve cobrir exatamente o universo e o domínio representativo exigidos pela norma macro.
+ * Coverage: O percentual de cobertura efetivo (\text{coverage\_ratio}) deve atingir o limiar exigido (\text{threshold\_required}, tipicamente 1.00).
+ * Completeness: Ausência de lacunas ocultas de dados e garantia de alinhamento temporal e geográfico síncrono entre as fontes.
+ * Aggregation Policy: Aplicação rigorosa das regras metodológicas de combinação (ex: médias ponderadas em vez de médias simples).
+ * Aggregation Verification: Checagem de não-linearidades, deduplicação cross-claim e geração da prova criptográfica das evidências agregadas.
+4. Modelos de Payload JSON
+4.1 Resposta de Rejeição / Bloqueio (NOT_PROMOTABLE)
+{
+  "claim_id": "claim-global-98421-2026",
+  "rule_id": "XA-TRUST-GOV-001",
+  "decision": "NOT_PROMOTABLE",
+  "evaluated_at": "2026-09-15T11:42:00Z",
+  "evaluation_context": {
+    "scope": "GLOBAL",
+    "target_population": "LATAM_ALL_SEGMENTS",
+    "local_inputs": [
+      { "claim_id": "claim-local-A", "status": "VERIFIED" },
+      { "claim_id": "claim-local-B", "status": "VERIFIED" },
+      { "claim_id": "claim-local-C", "status": "VERIFIED" }
+    ]
+  },
+  "blocking_reasons": [
+    {
+      "code": "ERR_SCOPE_UNDERCOVERAGE",
+      "category": "COVERAGE",
+      "severity": "CRITICAL",
+      "message": "Local claims do not satisfy global target population requirements.",
+      "details": {
+        "required_regions": ["SUL", "SUDESTE", "CENTRO-OESTE", "NORTE", "NORDESTE"],
+        "covered_regions": ["SUL", "SUDESTE", "CENTRO-OESTE"],
+        "missing_regions": ["NORTE", "NORDESTE"],
+        "coverage_ratio": 0.60,
+        "threshold_required": 1.00
+      }
+    }
+  ],
+  "audit_metadata": {
+    "evaluator_engine": "trust-gov-evaluator-v2.4.0",
+    "policy_version": "1.8.0",
+    "execution_id": "exec-uuid-77123-99a",
+    "trace_id": "0af7651916cd43dd8448eb211c80319c",
+    "sha256_input_proof": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
+
+4.2 Resposta de Sucesso (GLOBAL VERIFIED)
+{
+  "claim_id": "claim-global-98421-2026",
+  "rule_id": "XA-TRUST-GOV-001",
+  "decision": "VERIFIED",
+  "evaluated_at": "2026-09-15T11:45:00Z",
+  "evaluation_context": {
+    "scope": "GLOBAL",
+    "target_population": "LATAM_ALL_SEGMENTS",
+    "local_inputs": [
+      { "claim_id": "claim-local-A", "status": "VERIFIED" },
+      { "claim_id": "claim-local-B", "status": "VERIFIED" },
+      { "claim_id": "claim-local-C", "status": "VERIFIED" }
+    ]
+  },
+  "verification_proof": {
+    "coverage_satisfied": {
+      "coverage_ratio": 1.00,
+      "threshold_required": 1.00
+    },
+    "completeness_satisfied": true,
+    "aggregation_policy_applied": "WEIGHTED_AVERAGE_BY_VOLUME",
+    "aggregation_verification": {
+      "verified": true,
+      "merkle_root": "8f4e2a3b1c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f"
+    }
+  },
+  "audit_metadata": {
+    "evaluator_engine": "trust-gov-evaluator-v2.4.0",
+    "policy_version": "1.8.0",
+    "execution_id": "exec-uuid-77124-00b",
+    "trace_id": "1bf7651916cd43dd8448eb211c80320d",
+    "sha256_input_proof": "a4c0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852c966"
+  }
+}
+
+5. Especificações JSON-Schema (Draft 2020-12)
+5.1 Schema para NOT_PROMOTABLE
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gov.trust.xa/schemas/v1/not-promotable-decision.schema.json",
+  "title": "NotPromotableDecisionPayload",
+  "type": "object",
+  "required": ["claim_id", "rule_id", "decision", "evaluated_at", "evaluation_context", "blocking_reasons", "audit_metadata"],
+  "properties": {
+    "claim_id": { "type": "string" },
+    "rule_id": { "type": "string", "const": "XA-TRUST-GOV-001" },
+    "decision": { "type": "string", "enum": ["NOT_PROMOTABLE"] },
+    "evaluated_at": { "type": "string", "format": "date-time" },
+    "evaluation_context": {
+      "type": "object",
+      "required": ["scope", "target_population", "local_inputs"],
+      "properties": {
+        "scope": { "type": "string", "enum": ["GLOBAL"] },
+        "target_population": { "type": "string" },
+        "local_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["claim_id", "status"],
+            "properties": {
+              "claim_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["VERIFIED", "NOT_VERIFIED", "REVOKED"] }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code", "category", "severity", "message", "details"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^ERR_[A-Z0-9_]+$" },
+          "category": { "type": "string", "enum": ["TARGET_POPULATION", "COVERAGE", "COMPLETENESS", "AGGREGATION_POLICY", "AGGREGATION_VERIFICATION"] },
+          "severity": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+          "message": { "type": "string" },
+          "details": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "audit_metadata": {
+      "type": "object",
+      "required": ["evaluator_engine", "policy_version", "execution_id", "trace_id", "sha256_input_proof"],
+      "properties": {
+        "evaluator_engine": { "type": "string" },
+        "policy_version": { "type": "string" },
+        "execution_id": { "type": "string" },
+        "trace_id": { "type": "string" },
+        "sha256_input_proof": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+
+5.2 Schema para GLOBAL VERIFIED
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gov.trust.xa/schemas/v1/global-verified-decision.schema.json",
+  "title": "GlobalVerifiedDecisionPayload",
+  "type": "object",
+  "required": ["claim_id", "rule_id", "decision", "evaluated_at", "evaluation_context", "verification_proof", "audit_metadata"],
+  "properties": {
+    "claim_id": { "type": "string" },
+    "rule_id": { "type": "string", "const": "XA-TRUST-GOV-001" },
+    "decision": { "type": "string", "enum": ["VERIFIED"] },
+    "evaluated_at": { "type": "string", "format": "date-time" },
+    "evaluation_context": {
+      "type": "object",
+      "required": ["scope", "target_population", "local_inputs"],
+      "properties": {
+        "scope": { "type": "string", "enum": ["GLOBAL"] },
+        "target_population": { "type": "string" },
+        "local_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["claim_id", "status"],
+            "properties": {
+              "claim_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["VERIFIED"] }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "verification_proof": {
+      "type": "object",
+      "required": ["coverage_satisfied", "completeness_satisfied", "aggregation_policy_applied", "aggregation_verification"],
+      "properties": {
+        "coverage_satisfied": {
+          "type": "object",
+          "required": ["coverage_ratio", "threshold_required"],
+          "properties": {
+            "coverage_ratio": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "threshold_required": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+          },
+          "additionalProperties": false
+        },
+        "completeness_satisfied": { "type": "boolean", "const": true },
+        "aggregation_policy_applied": { "type": "string" },
+        "aggregation_verification": {
+          "type": "object",
+          "required": ["verified", "merkle_root"],
+          "properties": {
+            "verified": { "type": "boolean", "const": true },
+            "merkle_root": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "audit_metadata": {
+      "type": "object",
+      "required": ["evaluator_engine", "policy_version", "execution_id", "trace_id", "sha256_input_proof"],
+      "properties": {
+        "evaluator_engine": { "type": "string" },
+        "policy_version": { "type": "string" },
+        "execution_id": { "type": "string" },
+        "trace_id": { "type": "string" },
+        "sha256_input_proof": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+
+6. Considerações de Segurança e Conformidade
+ * Invariabilidade de Escopo: Motores de decisão downstream devem rejeitar payloads globais que não contenham o atributo sha256_input_proof devidamente assinado e rastreável.
+ * Defesa em Profundidade: A presença de additionalProperties: false impede ataques de sobrescrita de estado e injeção de parâmetros não homologados durante a transmissão de mensagens no barramento.
+
+
+Aqui está a tabela formal de elementos e papéis na governança XA-TRUST:
+| Elemento | Papel / Categoria de Evidência |
+|---|---|
+| Security FAQ | SOURCE_ARTIFACT |
+| ZDR documentation | POLICY_EVIDENCE |
+| Team ZDR Active | CONFIGURATION_EVIDENCE |
+| API Request | REQUEST_ARTIFACT |
+| Execução concreta | E3 EXECUTION_EVENT_EVIDENCE |
+| API Response | RESPONSE_ARTIFACT |
+| x-zero-data-retention=true | EXECUTION_CONTEXT_EVIDENCE |
+| Assertion header == true | TEST_ASSERTION |
+| Observed/Expected/Pass | E4 TEST_RESULT_EVIDENCE |
+| Hash/signature/binding válidos | E5 CRYPTOGRAPHIC_BINDING_EVIDENCE |
+| Verificador independente | E6 INDEPENDENT_VERIFICATION_EVENT |
+| Claim específica | E7 CLAIM-SCOPED VERIFIED |
+| FAQ → VERIFIED global | PROIBIDO (XA-TRUST-GOV-001) |
+Regra de Governança Aplicada
+ * PROIBIDO (Non-Derivability): Tentar derivar a validação global a partir de um artefato isolado como o Security FAQ viola diretamente a regra XA-TRUST-GOV-001.
+ * Cadeia de Evidências: A elevação para GLOBAL VERIFIED exige a avaliação integrada de toda a esteira de evidências (E_3 \to E_7), garantindo que alegações de escopo local (CLAIM-SCOPED VERIFIED) não forcem uma promoção global automática sem a devida reavaliação de escopo, cobertura e integridade criptográfica.
+
+
+
 <!--
   -- This file is auto-generated from README_js.md. Changes should be made there.
   -->
