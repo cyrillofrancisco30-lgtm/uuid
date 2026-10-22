@@ -59,6 +59,19 @@ For timestamp UUIDs, namespace UUIDs, and other options read on ...
 | [`uuid.validate()`](#uuidvalidatestr) | Test a string to see if it is a valid UUID |
 | [`uuid.version()`](#uuidversionstr) | Detect RFC version of a UUID |
 
+
+Este adendo normativo refina com precisão a semântica de governança do XA-TRUST-GOV-001, bloqueando qualquer brecha para scope escalation ou elevação implícita de confiança.
+A inclusão da regra específica para XAI ZDR (Zero Data Retention) na seção A.3 exemplifica perfeitamente a distinção entre evidência de contexto operacional (EXECUTION_CONTEXT_EVIDENCE) e a atestação efetiva de eliminação de conteúdo (ZDR_CONTENT_DELETION_PROOF).
+Síntese dos Pontos Normativos Consolidados no Anexo A
+ * Veto à Ilusão de Declaração (A.2.1): Artefatos passivos ou declarativos (SOURCE, POLICY, CONFIGURATION) são estritamente incapazes de gerar transição para GLOBAL VERIFIED.
+ * Cadeia de Evidência Local (A.2.2): Exige o percurso encadeado de evidência factual (E_3), resultado de teste (E_4), vínculo criptográfico (E_5) e verificação independente (E_6) para a formação de uma claim local (E_7).
+ * Princípio da Não-Substituibilidade (A.2.3): Estabelece que a existência de um atributo de resposta (ex: x-zero-data-retention=true) atesta apenas o contexto da execução, não constituindo prova de deleção de conteúdo ou verificação de terceira parte.
+ * Mecanismo Agregador Obrigatório (A.2.5): A promoção global exige a execução explícita do motor de agregação e reavaliação de escopo, vedando a promoção direta por conjunção de alegações locais (E_{7\_1} \land E_{7\_2} \land E_{7\_3} \centernot\implies \text{GLOBAL}).
+
+
+disparar workflow 
+
+
 ## API
 
 ### uuid.NIL
